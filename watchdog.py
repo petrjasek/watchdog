@@ -3,27 +3,32 @@
 
 FEED = 'http://www.eshop-simecek.cz/xml_feed_all.php'
 
-import urllib2 as urllib
+import urllib
 import xml.dom.minidom as minidom
+import htmlparser
 
 def getName(name):
 	"""Get product name"""
-	return name.childNode.data
+	return name.firstChild.data.encode('utf-8')
 
 def getPrice(price):
 	"""Get product price"""
-	return price.childNode.data
+	return int(price.firstChild.data)
 
 def checkPrice(name, price):
 	"""Checks price of product"""
-	params = {'q': name, 'order': 'price', 'minPrice': 0, 'maxPrice': price}
+	params = {'q': name, 'order': 'price', 'minPrice': 0, 'maxPrice': price - 1}
 	url = 'http://zbozi.cz/items?' + urllib.urlencode(params)
 	sock = urllib.urlopen(url)
 	html = sock.read()
 	sock.close()
 
-	print(url)
-	print(html)
+	parser = htmlparser.htmlParser()
+	parser.feed(html)
+	parser.close()
+
+	if parser.products:
+		print url
 
 # get feed
 feed = ""
@@ -33,18 +38,15 @@ for line in sock:
 		feed += line.decode('windows-1250').encode('utf-8')
 sock.close()
 
-print feed
-exit()
-
 # parse feed
 doc = minidom.parseString(feed)
 
-# get products
+# check price for products
 for item in doc.getElementsByTagName('SHOPITEM'):
 	name = getName(item.getElementsByTagName('PRODUCT')[0])
 	price = getPrice(item.getElementsByTagName('PRICE_VAT')[0])
 	checkPrice(name, price)
-	exit()
+
 
 # gc
 doc.unlink()
