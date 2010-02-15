@@ -7,6 +7,8 @@ import urllib
 import xml.dom.minidom as minidom
 import htmlparser
 
+checked = set() # names checked allready
+
 def getName(name):
 	"""Get product name"""
 	return name.firstChild.data.encode('utf-8')
@@ -17,17 +19,36 @@ def getPrice(price):
 
 def checkPrice(name, price):
 	"""Checks price of product"""
-	params = {'q': name, 'order': 'price', 'minPrice': 0, 'maxPrice': price - 1}
+	# gets part of name suitable for search
+	name = name.split(" - ", 1)[0]
+
+	# check if not searched allready
+	if name in checked:
+		return
+	else:
+		checked.add(name)
+
+	# params for search
+	params = {
+		'q': name,
+		'order': 'price',
+		'minPrice': 0,
+		'maxPrice': price - 1
+		}
+
+	# search for cheaper
 	url = 'http://zbozi.cz/items?' + urllib.urlencode(params)
 	sock = urllib.urlopen(url)
 	html = sock.read()
 	sock.close()
 
+	# parse recieved html
 	parser = htmlparser.htmlParser()
 	parser.feed(html)
 	parser.close()
 
-	if parser.products:
+	# prints output
+	if parser.products > 0:
 		print url
 
 # get feed

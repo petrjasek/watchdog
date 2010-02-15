@@ -10,6 +10,6 @@ class htmlParser(SGMLParser):
 	
 	def start_div(self, attrs):
 		id = [v for k, v in attrs if k == 'id']
-		if id == 'results':
+		if id == ['results']:
 			self.products = 1
 
