@@ -30,9 +30,9 @@ def checkPrice(name, price):
 
 	# params for search
 	params = {
-		'q': name,
+		'q': '"%s"' % name,
 		'order': 'price',
-		'minPrice': 0,
+		'minPrice': int(price * 0.7),
 		'maxPrice': price - 1
 		}
 
@@ -48,7 +48,7 @@ def checkPrice(name, price):
 	parser.close()
 
 	# prints output
-	if parser.products > 0:
+	if parser.products:
 		print url
 
 # get feed
@@ -68,6 +68,5 @@ for item in doc.getElementsByTagName('SHOPITEM'):
 	price = getPrice(item.getElementsByTagName('PRICE_VAT')[0])
 	checkPrice(name, price)
 
-
-# gc
 doc.unlink()
+
