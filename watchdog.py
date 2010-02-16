@@ -5,9 +5,20 @@ FEED = 'http://www.eshop-simecek.cz/xml_feed_all.php'
 
 import urllib
 import xml.dom.minidom as minidom
-import htmlparser
+from sgmllib import SGMLParser
 
 checked = set() # names checked allready
+
+# search for div id='results' ~ cheaper products exists
+class htmlParser(SGMLParser):
+	def reset(self):
+		SGMLParser.reset(self)
+		self.products = False
+	
+	def start_div(self, attrs):
+		id = [v for k, v in attrs if k == 'id']
+		if id == ['results']:
+			self.products = True
 
 def getName(name):
 	"""Get product name"""
@@ -43,7 +54,7 @@ def checkPrice(name, price):
 	sock.close()
 
 	# parse recieved html
-	parser = htmlparser.htmlParser()
+	parser = htmlParser()
 	parser.feed(html)
 	parser.close()
 
@@ -52,6 +63,7 @@ def checkPrice(name, price):
 		print url
 
 # get feed
+# filter unusefull lines
 feed = ""
 sock = urllib.urlopen(FEED)
 for line in sock:
