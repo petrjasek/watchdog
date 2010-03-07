@@ -8,6 +8,7 @@ import xml.dom.minidom as minidom
 from sgmllib import SGMLParser
 
 checked = set() # names checked allready
+ignore = [] # names to be ignored
 
 # search for div id='results' ~ cheaper products exists
 class htmlParser(SGMLParser):
@@ -22,7 +23,10 @@ class htmlParser(SGMLParser):
 
 def getName(name):
 	"""Get product name"""
-	return name.firstChild.data.encode('utf-8')
+	name = name.firstChild.data.encode('utf-8')
+	for i in ignore:
+		name = name.replace(i, "").lstrip()
+	return name
 
 def getPrice(price):
 	"""Get product price"""
@@ -60,7 +64,9 @@ def checkPrice(name, price):
 
 	# prints output
 	if parser.products:
+		print name, "(" + str(price) + ",-)"
 		print url
+		print
 
 # get feed
 # filter unusefull lines
@@ -70,6 +76,12 @@ for line in sock:
 	if line.find('SHOP') >= 0 or line.find('PRODUCT') >= 0 or line.find('PRICE') >= 0:
 		feed += line.decode('windows-1250').encode('utf-8')
 sock.close()
+
+# load ignore list
+f = open('./ignore.txt', 'r')
+for line in f:
+	ignore.append(line.rstrip())
+f.close()
 
 # parse feed
 doc = minidom.parseString(feed)
