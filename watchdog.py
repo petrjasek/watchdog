@@ -6,6 +6,7 @@ FEED = 'http://www.eshop-simecek.cz/xml_feed_all.php'
 import urllib
 import xml.dom.minidom as minidom
 from sgmllib import SGMLParser
+import os.path
 
 checked = set() # names checked allready
 ignore = [] # names to be ignored
@@ -78,7 +79,7 @@ for line in sock:
 sock.close()
 
 # load ignore list
-f = open('./ignore.txt', 'r')
+f = open(os.path.dirname(__file__) + "/ignore.txt", 'r')
 for line in f:
 	ignore.append(line.rstrip())
 f.close()
