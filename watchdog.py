@@ -2,7 +2,7 @@
 # Watchdog
 
 FEED = 'http://www.eshop-simecek.cz/xml_feed_all.php'
-SLEEP_TIME = 60 # wait 2 minutes between checks
+SLEEP_TIME = 120 # wait 2 minutes between checks
 
 import urllib
 import xml.dom.minidom as minidom
