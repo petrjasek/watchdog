@@ -1,106 +1,73 @@
-#!/usr/bin/env python
-# Watchdog
+#!/usr/bin/env python3
+"""Watchdog"""
 
-FEED = 'http://www.eshop-simecek.cz/xml_feed_all.php'
-SLEEP_TIME = 120 # wait 2 minutes between checks
-
-import urllib
-import xml.dom.minidom as minidom
-from sgmllib import SGMLParser
-import os.path
+import httplib2
+from lxml import etree
 from time import sleep
+from random import random
+from urllib.parse import urlencode
 
-checked = set() # names checked allready
-ignore = [] # names to be ignored
+FEED_URL = 'http://www.eshop-simecek.cz/xml_feed_all.php'
+FEED_FILE = './_feed.xml'
+CACHE = '.cache'
 
-# search for div id='results' ~ cheaper products exists
-class htmlParser(SGMLParser):
-    """ Parses HTML for products """
-    def reset(self):
-        SGMLParser.reset(self)
-        self.products = False
+def get_feed(url, dest):
+    """Get feed from url and store to dest"""
+    http = httplib2.Http(CACHE)
+    response, content = http.request(url)
+    feed = content.decode('WINDOWS-1250')
+    with open(dest, mode='w', encoding='WINDOWS-1250') as file:
+        file.write(feed)
 
-    def start_div(self, attrs):
-        id = [v for k, v in attrs if k == 'id']
-        if id == ['results']:
-            self.products = True
+# load ignore list
+ignored = []
+with open('./ignore.txt', mode='r', encoding='utf-8') as file:
+    for line in file:
+        ignored.append(line.strip())
 
+# fetch feed for parsing
+get_feed(FEED_URL, FEED_FILE)
 
-def getName(name):
-    """ Get product name """
-    name = name.firstChild.data.encode('utf-8')
-    for i in ignore:
-        name = name.replace(i, "").lstrip()
-    return name
+# parse feed
+checked = set()
+parser = etree.XMLParser(recover=True)
+tree = etree.parse(FEED_FILE, parser)
+for item in tree.findall('SHOPITEM'):
+    product = item.find('PRODUCT')
+    price = item.find('PRICE_VAT')
+    if product is None or price is None:
+        continue
 
-def getPrice(price):
-    """ Get product price """
-    return int(price.firstChild.data)
+    product = product.text.split(" - ", 1)[0]
+    price = int(price.text)
 
-def checkPrice(name, price):
-    """ Checks price of product """
-    # gets part of name suitable for search
-    name = name.split(" - ", 1)[0]
+    # remove ignored part
+    for ignore in ignored:
+        product = product.replace(ignore, '').strip()
 
-    # check if not searched allready
-    if name in checked:
-        return
-    else:
-        checked.add(name)
+    if product in checked or price < 256:
+        continue
 
-    # params for search
+    checked.add(product)
+
+    # prepare query
     params = {
-        'q': '%s' % name,
+        'q': product,
         'order': 'price',
         'minPrice': int(price * 0.7),
         'maxPrice': price - 1
-        }
+    }
 
     # search for cheaper
-    url = 'http://zbozi.cz/items?' + urllib.urlencode(params)
-    sock = urllib.urlopen(url)
-    html = sock.read()
-    sock.close()
+    url = 'http://zbozi.cz/items?{}'.format(urlencode(params))
+    http = httplib2.Http(CACHE)
+    response, content = http.request(url)
 
-    # parse recieved html
-    parser = htmlParser()
-    parser.feed(html)
-    parser.close()
+    html = content.decode('utf-8')
+    if html.find('<div id="results">') > 0:
+        print('{0} ({1},-)'.format(product, price))
+        print(url)
+        print()
 
-    # prints output
-    if parser.products:
-        print name, "(" + str(price) + ",-)"
-        print url
-        print
-
-
-def main():
-    """ Check products """
-    feed = ""
-    sock = urllib.urlopen(FEED)
-    for line in sock:
-        if line.find('SHOP') >= 0 or line.find('PRODUCT') >= 0 or line.find('PRICE') >= 0:
-            feed += line.decode('windows-1250').encode('utf-8')
-    sock.close()
-
-    # load ignore list
-    f = open(os.path.dirname(__file__) + "/ignore.txt", 'r')
-    for line in f:
-        ignore.append(line.rstrip())
-    f.close()
-
-    # parse feed
-    doc = minidom.parseString(feed)
-
-    # check price for products
-    for item in doc.getElementsByTagName('SHOPITEM'):
-        name = getName(item.getElementsByTagName('PRODUCT')[0])
-        price = getPrice(item.getElementsByTagName('PRICE_VAT')[0])
-        checkPrice(name, price)
-        sleep(SLEEP_TIME)
-
-    doc.unlink()
-
-if __name__ == '__main__':
-    main()
-
+    # pretend human
+    sleep(random() * 100)
