@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Watchdog"""
 
+__author__ = 'Petr Jasek <jasekpetr@gmail.com>'
+__copyright__ = 'Copyright (c) 2011 Petr Jasek'
+__license__ = 'http://www.gnu.org/licenses/gpl.txt'
+
 import httplib2
 from lxml import etree
 from time import sleep
